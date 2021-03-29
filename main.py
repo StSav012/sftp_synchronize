@@ -18,18 +18,24 @@ except ImportError:
 
     Final = _Final()
 
-REQUIREMENTS: Final[List[str]] = ['paramiko']
+paramiko_package: Final[str] = 'paramiko'
 
-for package in REQUIREMENTS:
-    if package not in sys.modules:
-        import subprocess
+try:
+    paramiko = importlib.import_module(paramiko_package)
+except (ImportError, ModuleNotFoundError) as ex:
+    if sys.argv[0] == sys.executable:  # if embedded
+        raise ex
 
-        if subprocess.check_call([sys.executable, '-m', 'pip', 'install', package]):
-            if __name__ == '__main__':
-                print(f'Module `{package}` can not be loaded. Make sure it is installed.')
-                sys.exit(1)
+    import subprocess
+
+    if subprocess.check_call([sys.executable, '-m', 'pip', 'install', paramiko_package]):
+        if __name__ == '__main__':
+            print(f'Module `{paramiko_package}` can not be loaded. Make sure it is installed.')
+            sys.exit(1)
         else:
-            paramiko = importlib.import_module(package)
+            raise ex
+    else:
+        paramiko = importlib.import_module(paramiko_package)
 
 
 if __name__ == '__main__':
