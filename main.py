@@ -6,6 +6,7 @@ import getpass
 import os
 from pathlib import Path
 from stat import S_ISDIR, S_ISREG
+from typing import Iterator
 
 import paramiko
 
@@ -51,7 +52,8 @@ if __name__ == '__main__':
                     local_dir: Path = local_root / remote_path
                     local_dir.mkdir(exist_ok=True)
 
-                    files: list[paramiko.sftp_attr.SFTPAttributes] = sftp.listdir_attr(str(remote_dir))
+                    files: Iterator[paramiko.sftp_attr.SFTPAttributes] = sftp.listdir_iter(str(remote_dir),
+                                                                                           read_aheads=1)
                     file: paramiko.sftp_attr.SFTPAttributes
 
                     def get_file():
