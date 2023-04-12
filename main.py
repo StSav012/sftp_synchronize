@@ -36,49 +36,52 @@ if __name__ == '__main__':
         remote_root: Path = Path(args.remote_path)
         local_root: Path = Path(args.local_path).expanduser()
 
-        ssh: paramiko.SSHClient = paramiko.SSHClient()
-        # automatically add keys without requiring human intervention
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh: paramiko.SSHClient
+        with paramiko.SSHClient() as ssh:
+            # automatically add keys without requiring human intervention
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-        ssh.connect(sftp_url, username=sftp_user, password=sftp_pass, timeout=1, compress=True)
+            ssh.connect(sftp_url, username=sftp_user, password=sftp_pass, timeout=1, compress=True)
 
-        sftp: paramiko.sftp_client.SFTPClient = ssh.open_sftp()
+            sftp: paramiko.sftp_client.SFTPClient
+            with ssh.open_sftp() as sftp:
 
-        def update_dir(remote_path: Path = Path('.')):
-            remote_dir: Path = remote_root / remote_path
-            local_dir: Path = local_root / remote_path
-            local_dir.mkdir(exist_ok=True)
+                def update_dir(remote_path: Path = Path('.')):
+                    remote_dir: Path = remote_root / remote_path
+                    local_dir: Path = local_root / remote_path
+                    local_dir.mkdir(exist_ok=True)
 
-            files: list[paramiko.sftp_attr.SFTPAttributes] = sftp.listdir_attr(str(remote_dir))
-            file: paramiko.sftp_attr.SFTPAttributes
+                    files: list[paramiko.sftp_attr.SFTPAttributes] = sftp.listdir_attr(str(remote_dir))
+                    file: paramiko.sftp_attr.SFTPAttributes
 
-            def get_file():
-                if file.filename.startswith('~$') or (file.filename.startswith('~') and file.filename.endswith('.tmp')):
-                    print('skipping', remote_dir / file.filename)
-                    return
-                if args.exclude is not None and file.filename in args.exclude:
-                    print('skipping', remote_dir / file.filename)
-                    return
-                print('getting', remote_dir / file.filename)
-                try:
-                    sftp.get(str(remote_dir / file.filename), str(local_dir / file.filename))
-                except OSError as ex:
-                    print(f'{ex} when getting {remote_dir / file.filename}')
-                else:
-                    os.utime(str(local_dir / file.filename), (file.st_atime, file.st_mtime))
+                    def get_file():
+                        if (file.filename.startswith('~$')
+                                or (file.filename.startswith('~') and file.filename.endswith('.tmp'))):
+                            print('skipping', remote_dir / file.filename)
+                            return
+                        if args.exclude is not None and file.filename in args.exclude:
+                            print('skipping', remote_dir / file.filename)
+                            return
+                        print('getting', remote_dir / file.filename)
+                        try:
+                            sftp.get(str(remote_dir / file.filename), str(local_dir / file.filename))
+                        except OSError as ex:
+                            print(f'{ex} when getting {remote_dir / file.filename}')
+                        else:
+                            os.utime(str(local_dir / file.filename), (file.st_atime, file.st_mtime))
 
-            for file in files:
-                if S_ISREG(file.st_mode):
-                    if not (local_dir / file.filename).exists():
-                        get_file()
-                    else:
-                        local_attributes: os.stat_result = (local_dir / file.filename).lstat()
-                        if local_attributes.st_mtime != file.st_mtime:
-                            get_file()
-                elif S_ISDIR(file.st_mode):
-                    update_dir(remote_path / file.filename)
+                    for file in files:
+                        if S_ISREG(file.st_mode):
+                            if not (local_dir / file.filename).exists():
+                                get_file()
+                            else:
+                                local_attributes: os.stat_result = (local_dir / file.filename).lstat()
+                                if local_attributes.st_mtime != file.st_mtime:
+                                    get_file()
+                        elif S_ISDIR(file.st_mode):
+                            update_dir(remote_path / file.filename)
 
-        update_dir()
+                update_dir()
 
 
     main()
