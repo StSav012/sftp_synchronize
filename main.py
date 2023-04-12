@@ -16,6 +16,7 @@ if __name__ == '__main__':
             description='like rsync, update local files with remote ones via SFTP',
             formatter_class=argparse.RawTextHelpFormatter)
         ap.add_argument('--exclude', action='append', help='the file name to exclude; may be used several times')
+        ap.add_argument('--move', action='store_true', help='remove the remote file after receiving its copy')
         ap.add_argument('host', metavar='[user@]host',
                         help='the username and the remote host location\n'
                              'If username is omitted, current local username is used.')
@@ -71,6 +72,11 @@ if __name__ == '__main__':
                             print(f'{ex} when getting {remote_dir / file.filename}')
                         else:
                             os.utime(str(local_dir / file.filename), (file.st_atime, file.st_mtime))
+                            if args.move:
+                                try:
+                                    sftp.remove(str(remote_dir / file.filename))
+                                except OSError as ex:
+                                    print(f'{ex} when removing {remote_dir / file.filename}')
 
                     for file in files:
                         if S_ISREG(file.st_mode):
