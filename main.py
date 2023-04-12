@@ -38,7 +38,7 @@ if __name__ == '__main__':
         else:
             sftp_url = args.host
             sftp_user = getpass.getuser()
-        sftp_pass: str = getpass.getpass('Password: ')
+        sftp_pass: str = getpass.getpass(f'Password for {sftp_user}@{sftp_url}: ')
 
         remote_root: Path = Path(args.remote_path)
         local_root: Path = Path(args.local_path).expanduser()
