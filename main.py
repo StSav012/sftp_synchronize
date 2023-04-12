@@ -58,37 +58,43 @@ if __name__ == '__main__':
                     files: Iterator[paramiko.sftp_attr.SFTPAttributes] = sftp.listdir_iter(str(remote_dir),
                                                                                            read_aheads=1)
                     file: paramiko.sftp_attr.SFTPAttributes
+                    
+                    def remote_file_path() -> Path:
+                        return remote_dir / file.filename
+                    
+                    def local_file_path() -> Path:
+                        return local_dir / file.filename
 
                     def remove_remote_file() -> None:
                         try:
-                            sftp.remove(str(remote_dir / file.filename))
+                            sftp.remove(str(remote_file_path()))
                         except OSError as ex:
-                            print(f'{ex} when removing {remote_dir / file.filename}')
+                            print(f'{ex} when removing {remote_file_path()}')
 
                     def get_file():
                         if (file.filename.startswith('~$')
                                 or (file.filename.startswith('~') and file.filename.endswith('.tmp'))):
-                            print('skipping', remote_dir / file.filename)
+                            print('skipping', remote_file_path())
                             return
                         if args.exclude is not None and file.filename in args.exclude:
-                            print('skipping', remote_dir / file.filename)
+                            print('skipping', remote_file_path())
                             return
-                        print('getting', remote_dir / file.filename)
+                        print('getting', remote_file_path())
                         try:
-                            sftp.get(str(remote_dir / file.filename), str(local_dir / file.filename))
+                            sftp.get(str(remote_file_path()), str(local_file_path()))
                         except OSError as ex:
-                            print(f'{ex} when getting {remote_dir / file.filename}')
+                            print(f'{ex} when getting {remote_file_path()}')
                         else:
-                            os.utime(str(local_dir / file.filename), (file.st_atime, file.st_mtime))
+                            os.utime(str(local_file_path()), (file.st_atime, file.st_mtime))
                             if args.move:
                                 remove_remote_file()
 
                     for file in files:
                         if S_ISREG(file.st_mode):
-                            if not (local_dir / file.filename).exists():
+                            if not local_file_path().exists():
                                 get_file()
                             else:
-                                local_attributes: os.stat_result = (local_dir / file.filename).lstat()
+                                local_attributes: os.stat_result = local_file_path().lstat()
                                 if (local_attributes.st_mtime != file.st_mtime
                                         or (args.check_size and local_attributes.st_size != file.st_size)):
                                     get_file()
