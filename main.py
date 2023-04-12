@@ -15,6 +15,8 @@ if __name__ == '__main__':
         ap: argparse.ArgumentParser = argparse.ArgumentParser(
             description='like rsync, update local files with remote ones via SFTP',
             formatter_class=argparse.RawTextHelpFormatter)
+        ap.add_argument('-s', '--check-size', action='store_true',
+                        help='fetch a remote file if its size differs from the one if the local file')
         ap.add_argument('--exclude', action='append', help='the file name to exclude; may be used several times')
         ap.add_argument('--move', action='store_true', help='remove the remote file after receiving its copy')
         ap.add_argument('host', metavar='[user@]host',
@@ -84,7 +86,8 @@ if __name__ == '__main__':
                                 get_file()
                             else:
                                 local_attributes: os.stat_result = (local_dir / file.filename).lstat()
-                                if local_attributes.st_mtime != file.st_mtime:
+                                if (local_attributes.st_mtime != file.st_mtime
+                                        or (args.check_size and local_attributes.st_size != file.st_size)):
                                     get_file()
                         elif S_ISDIR(file.st_mode):
                             update_dir(remote_path / file.filename)
