@@ -59,6 +59,12 @@ if __name__ == '__main__':
                                                                                            read_aheads=1)
                     file: paramiko.sftp_attr.SFTPAttributes
 
+                    def remove_remote_file() -> None:
+                        try:
+                            sftp.remove(str(remote_dir / file.filename))
+                        except OSError as ex:
+                            print(f'{ex} when removing {remote_dir / file.filename}')
+
                     def get_file():
                         if (file.filename.startswith('~$')
                                 or (file.filename.startswith('~') and file.filename.endswith('.tmp'))):
@@ -75,10 +81,7 @@ if __name__ == '__main__':
                         else:
                             os.utime(str(local_dir / file.filename), (file.st_atime, file.st_mtime))
                             if args.move:
-                                try:
-                                    sftp.remove(str(remote_dir / file.filename))
-                                except OSError as ex:
-                                    print(f'{ex} when removing {remote_dir / file.filename}')
+                                remove_remote_file()
 
                     for file in files:
                         if S_ISREG(file.st_mode):
@@ -89,6 +92,8 @@ if __name__ == '__main__':
                                 if (local_attributes.st_mtime != file.st_mtime
                                         or (args.check_size and local_attributes.st_size != file.st_size)):
                                     get_file()
+                                elif args.move:
+                                    remove_remote_file()
                         elif S_ISDIR(file.st_mode):
                             update_dir(remote_path / file.filename)
 
