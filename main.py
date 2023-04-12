@@ -3,10 +3,11 @@ from __future__ import annotations
 
 import argparse
 import getpass
+import gzip
 import os
 from pathlib import Path
 from stat import S_ISDIR, S_ISREG
-from typing import Iterator
+from typing import IO, Iterator, cast
 
 import paramiko
 
@@ -17,6 +18,8 @@ if __name__ == '__main__':
             formatter_class=argparse.RawTextHelpFormatter)
         ap.add_argument('-s', '--check-size', action='store_true',
                         help='fetch a remote file if its size differs from the one if the local file')
+        ap.add_argument('-z', '--compress', action='store_true',
+                        help='store the received files as separate GZip archives')
         ap.add_argument('--exclude', action='append', help='the file name to exclude; may be used several times')
         ap.add_argument('--move', action='store_true', help='remove the remote file after receiving its copy')
         ap.add_argument('host', metavar='[user@]host',
@@ -63,6 +66,8 @@ if __name__ == '__main__':
                         return remote_dir / file.filename
                     
                     def local_file_path() -> Path:
+                        if args.compress:
+                            return local_dir / (file.filename + '.gz')
                         return local_dir / file.filename
 
                     def remove_remote_file() -> None:
@@ -81,7 +86,10 @@ if __name__ == '__main__':
                             return
                         print('getting', remote_file_path())
                         try:
-                            sftp.get(str(remote_file_path()), str(local_file_path()))
+                            if args.compress:
+                                sftp.getfo(str(remote_file_path()), cast(IO, gzip.GzipFile(local_file_path(), 'wb')))
+                            else:
+                                sftp.get(str(remote_file_path()), str(local_file_path()))
                         except OSError as ex:
                             print(f'{ex} when getting {remote_file_path()}')
                         else:
