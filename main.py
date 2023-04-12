@@ -60,8 +60,12 @@ if __name__ == '__main__':
                     print('skipping', remote_dir / file.filename)
                     return
                 print('getting', remote_dir / file.filename)
-                sftp.get(str(remote_dir / file.filename), str(local_dir / file.filename))
-                os.utime(str(local_dir / file.filename), (file.st_atime, file.st_mtime))
+                try:
+                    sftp.get(str(remote_dir / file.filename), str(local_dir / file.filename))
+                except OSError as ex:
+                    print(f'{ex} when getting {remote_dir / file.filename}')
+                else:
+                    os.utime(str(local_dir / file.filename), (file.st_atime, file.st_mtime))
 
             for file in files:
                 if S_ISREG(file.st_mode):
