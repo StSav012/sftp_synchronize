@@ -8,7 +8,7 @@ is set identical to the remote values.
 
 ### Update local files with remote ones via SFTP
 
-**Usage**: `main.py [-h] [--exclude EXCLUDE] [user@]host remote_path local_path`
+**Usage**: `main.py [-h] [-s] [--exclude EXCLUDE] [--move] [user@]host remote_path local_path`
 
 Positional arguments:
 * `[user@]host` is the username and the remote host location.
@@ -17,5 +17,7 @@ Positional arguments:
 * `local_path`  is the destination path on the local host.
 
 Optional arguments:
-* `-h` or `--help` to show this help message and exit.
-* `--exclude EXCLUDE` is the file name to exclude; may be used several times.
+* `-h` or `--help` to show this help message and exit;
+* `-s`, `--check-size` to fetch a remote file if its size differs from the one if the local file;
+* `--exclude EXCLUDE` is the file name to exclude; may be used several times;
+* `--move` to remove the remote file after receiving its copy.
