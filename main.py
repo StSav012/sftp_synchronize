@@ -72,6 +72,7 @@ if __name__ == '__main__':
 
                     def remove_remote_file() -> None:
                         try:
+                            print('removing', remote_file_path())
                             sftp.remove(str(remote_file_path()))
                         except OSError as ex:
                             print(f'{ex} when removing {remote_file_path()}')
